@@ -112,12 +112,11 @@ def is_valid_key(matrix):
         print(" -> Invalid")
         return False
 
-# ==================== Exercise 1: Encryption and Decryption ====================
-
+# Exercise 1
 def NameCipher_encryption(plaintext, key):
+    #Encrypt plaintext using NameCipher
     K1 = key['K1']
     K2 = key['K2']
-
     numbers = text_to_numbers(plaintext)
 
     # Padding if odd length
@@ -136,22 +135,10 @@ def NameCipher_encryption(plaintext, key):
     return numbers_to_text(ciphertext_numbers)
 
 def NameCipher_decryption(ciphertext, key):
-    """
-    Decrypt ciphertext using NameCipher
+    #Decrypt ciphertext using NameCipher
 
-    Parameters:
-    - ciphertext: string to decrypt
-    - key: dictionary with 'K1' and 'K2' matrices
-
-    Returns: plaintext string
-
-    Decryption process (reverse of encryption):
-    1. Y = D_K2(Z) = (Z - (a, b)) * K2^(-1) mod 26
-    2. X = D_K1(Y) = (Y - (a, b)) * K1^(-1) mod 26
-    """
     K1 = key['K1']
     K2 = key['K2']
-
     # Calculate inverse matrices for keys
     K1_inv = matrix_inverse_mod26(K1)
     K2_inv = matrix_inverse_mod26(K2)
@@ -167,15 +154,13 @@ def NameCipher_decryption(ciphertext, key):
 
         # Y = (Z - (a, b)) * K2^(-1)mod 26
         Y = np.dot((block - shift_vector), K2_inv) % N
-
         #X = (Y - (a, b)) * K1^(-1)mod 26
         X = np.dot((Y - shift_vector), K1_inv) % N
 
         plaintext_numbers.extend(X.tolist())
-
     return numbers_to_text(plaintext_numbers)
 
-# ==================== Exercise 2: Iterative Attack ====================
+#Exercise 2: Iterative Attack 
 
 def iterative_attack(ciphertext, key):
     print(f"Attempting iterative attack on: {ciphertext}")
