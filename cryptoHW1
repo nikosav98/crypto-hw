@@ -26,10 +26,7 @@ def extended_gcd(a, b):
     return gcd_val, x, y
 
 def mod_inverse(a, m):
-    """
-    Calculate modular multiplicative inverse of a modulo m
-    Returns x such that (a * x) % m = 1
-    """
+    #Calculate modular multiplicative inverse of a modulo m (26 in this case)
     gcd_val, x, y = extended_gcd(a % m, m)
     if gcd_val != 1:
         # Modular inverse doesn't exist
@@ -38,17 +35,13 @@ def mod_inverse(a, m):
 
 def matrix_determinant_mod(matrix, mod):
     """
-    Calculate determinant of 2x2 matrix modulo mod
-    For matrix [[a, b], [c, d]], det = ad - bc
+    Calculate determinant of 2x2 matrix mod (26)
     """
     det = (matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]) % mod
     return det
 
 def matrix_inverse_mod26(matrix):
-    """
-    Calculate inverse of 2x2 matrix modulo 26
-    """
-    # Calculate determinant mod 26
+    #Calculate inverse of 2x2 matrix modulo 26
     det = matrix_determinant_mod(matrix, N)
 
     # Check if inverse exists Using numpy's gcd
