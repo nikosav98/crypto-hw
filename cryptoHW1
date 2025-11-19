@@ -1,13 +1,4 @@
-"""
-NameCipher Block Cipher Implementation
-Students: Harel and Niko
-Course: Data Security and Cryptology - Homework 1
 
-This implementation includes:
-- Exercise 1: Encryption and Decryption functions
-- Exercise 2: Iterative Attack
-- Exercise 3: Theoretical analysis of key composition
-"""
 
 import numpy as np # We use NumPy for matrix operations (multiplication, arrays) 
 
@@ -15,6 +6,10 @@ import numpy as np # We use NumPy for matrix operations (multiplication, arrays)
 N = 26  # Alphabet size (A-Z: 0-25)
 a = 7   # First letter of Harel: H = 7
 b = 13  # First letter of Niko: N = 13
+
+class IterativeAttackFailure(Exception):
+    #Raised when iterative attack cannot return plaintext
+    pass
 
 # ==================== Helper Functions ====================
 
@@ -56,32 +51,28 @@ def matrix_inverse_mod26(matrix):
     # Calculate determinant mod 26
     det = matrix_determinant_mod(matrix, N)
 
-    # Check if inverse exists
-    # Using numpy's gcd function for efficiency
+    # Check if inverse exists Using numpy's gcd
     if np.gcd(det, N) != 1:
-        raise ValueError(f"Matrix is not invertible mod {N}. Determinant = {det}, gcd(det, {N}) = {np.gcd(det, N)}")
+        raise ValueError(f"Matrix is not invertibl")
 
     # Calculate modular inverse of determinant
     det_inv = mod_inverse(det, N)
-
-    # For 2x2 matrix [[a, b], [c, d]], inverse = (1/det) * [[d, -b], [-c, a]]
+    # Inverse = (d,-b; -c,a)
     inverse = np.array([
         [matrix[1][1], -matrix[0][1]],
         [-matrix[1][0], matrix[0][0]]
     ])
 
     # Multiply by determinant inverse and take mod 26
-    inverse = (det_inv * inverse) % N
+    inverse = (det_inv * inverse) % N # mod 26 
 
     return inverse.astype(int)
 
 # ==================== Text Conversion Functions ====================
 
 def text_to_numbers(text):
-    """
-    Convert text to list of numbers (A=0, B=1, ..., Z=25)
-    Ignores non-alphabetic characters
-    """
+    #Convert text to list of numbers (A=0, B=1, ..., Z=25)
+    #Ignores non-alphabetic characters
     text = text.upper()
     numbers = []
     for char in text:
@@ -90,17 +81,13 @@ def text_to_numbers(text):
     return numbers
 
 def numbers_to_text(numbers):
-    """Convert list of numbers back to text"""
     text = ""
     for num in numbers:
         text += chr((num % N) + ord('A'))
     return text
 
 def string_to_matrix(key_string):
-    """
-    Convert 4-letter string to 2x2 matrix
-    Example: "road" -> [[17, 14], [0, 3]]
-    """
+    #Convert 4-letter string to 2x2 matrix
     if len(key_string) != 4:
         raise ValueError("Key string must be exactly 4 characters")
 
@@ -116,11 +103,11 @@ def string_to_matrix(key_string):
 def is_valid_key(matrix):
     """
     Verify that encryption key is valid
-    A key is valid if its determinant is coprime with 26 (gcd(det, 26) = 1)
+    Key is valid if gcd(det, 26) = 1
     This ensures the matrix is invertible mod 26
     """
     det = matrix_determinant_mod(matrix, N)
-    gcd_val = np.gcd(det, N)  
+    gcd_val = np.gcd(det, N) 
 
     print(f"Matrix: {matrix[0].tolist()} {matrix[1].tolist()}, ", end="")
     print(f"det={det}, gcd={gcd_val}", end="")
@@ -135,42 +122,22 @@ def is_valid_key(matrix):
 # ==================== Exercise 1: Encryption and Decryption ====================
 
 def NameCipher_encryption(plaintext, key):
-    """
-    Encrypt plaintext using NameCipher with double encryption
-
-    Parameters:
-    - plaintext: string to encrypt
-    - key: dictionary with 'K1' and 'K2' matrices (each 2x2)
-
-    Returns: ciphertext string
-
-    Encryption process:
-    1. Y = E_K1(X) = (X * K1 + (a, b)) mod 26
-    2. Z = E_K2(Y) = (Y * K2 + (a, b)) mod 26
-    """
     K1 = key['K1']
     K2 = key['K2']
 
-    # Convert plaintext to numbers
     numbers = text_to_numbers(plaintext)
 
-    # Add padding if length is odd (we work with 2-letter blocks)
+    # Padding if odd length
     if len(numbers) % 2 != 0:
-        numbers.append(23)  # Padding with 'X'
+        numbers.append(0)
 
     ciphertext_numbers = []
     shift_vector = np.array([a, b])
 
-    # Process each 2-letter block
     for i in range(0, len(numbers), 2):
         block = np.array([numbers[i], numbers[i+1]])
-
-        # First encryption: Y = (X * K1 + (a, b)) mod 26
         Y = (np.dot(block, K1) + shift_vector) % N
-
-        # Second encryption: Z = (Y * K2 + (a, b)) mod 26
         Z = (np.dot(Y, K2) + shift_vector) % N
-
         ciphertext_numbers.extend(Z.tolist())
 
     return numbers_to_text(ciphertext_numbers)
@@ -192,11 +159,10 @@ def NameCipher_decryption(ciphertext, key):
     K1 = key['K1']
     K2 = key['K2']
 
-    # Calculate inverse matrices
+    # Calculate inverse matrices for keys
     K1_inv = matrix_inverse_mod26(K1)
     K2_inv = matrix_inverse_mod26(K2)
 
-    # Convert ciphertext to numbers
     numbers = text_to_numbers(ciphertext)
 
     plaintext_numbers = []
@@ -206,10 +172,10 @@ def NameCipher_decryption(ciphertext, key):
     for i in range(0, len(numbers), 2):
         block = np.array([numbers[i], numbers[i+1]])
 
-        # First decryption: Y = (Z - (a, b)) * K2^(-1) mod 26
+        # Y = (Z - (a, b)) * K2^(-1)mod 26
         Y = np.dot((block - shift_vector), K2_inv) % N
 
-        # Second decryption: X = (Y - (a, b)) * K1^(-1) mod 26
+        #X = (Y - (a, b)) * K1^(-1)mod 26
         X = np.dot((Y - shift_vector), K1_inv) % N
 
         plaintext_numbers.extend(X.tolist())
@@ -219,93 +185,32 @@ def NameCipher_decryption(ciphertext, key):
 # ==================== Exercise 2: Iterative Attack ====================
 
 def iterative_attack(ciphertext, key):
-    """
-    Perform Iterative Attack: Decrypt by encrypting repeatedly.
-    If E^k(C) = C (cycle completes), then E^(k-1)(C) = P (plaintext).
+    print(f"Attempting iterative attack on: {ciphertext}")
 
-    Parameters:
-    - ciphertext: the encrypted text to decrypt
-    - key: the encryption key (K1, K2)
-
-    Returns: tuple (plaintext, iterations)
-    """
-    print(f"Attacking: {ciphertext}")
-
-    # Start with the ciphertext
-    current_text = ciphertext
+    original = ciphertext
+    current = ciphertext
     iterations = 0
+    seen = set()
 
-    # Keep encrypting until we return to the original ciphertext
     while True:
         iterations += 1
+        next_text = NameCipher_encryption(current, key)
 
-        # Encrypt the current text to get the next one in the sequence
-        next_text = NameCipher_encryption(current_text, key)
-
-        # Progress indicator
-        if iterations % 10 == 0:
-            print(f"{iterations} iterations...", end="\r")
-
-        # If we looped back to the start (ciphertext), current is the plaintext
-        # Because: E(P) = C, and we just found that E(current) = C
-        if next_text == ciphertext:
+        # Cycle found: returned to starting ciphertext
+        if next_text == original:
             print(f"\nCycle complete after {iterations} iterations")
-            return current_text, iterations
+            # The previous value is the plaintext
+            return current, iterations
 
-        # Move to next iteration
-        current_text = next_text
+        # Infinite loop protection
+        if next_text in seen:
+            raise IterativeAttackFailure(
+                f"Cycle detected but original ciphertext was never reached "
+                f"(after {iterations} iterations)."
+            )
 
-# ==================== Exercise 3: Theoretical Analysis ====================
-
-def find_equivalent_key(K1, K2):
-    """
-    Exercise 3: Find a single key K3 such that E_K2(E_K1(X)) = E_K3(X)
-
-    Mathematical proof:
-    E_K1(X) = X*K1 + (a,b)
-    E_K2(Y) = Y*K2 + (a,b)
-
-    So: E_K2(E_K1(X)) = (X*K1 + (a,b))*K2 + (a,b)
-                       = X*K1*K2 + (a,b)*K2 + (a,b)
-                       = X*K3 + shift3
-
-    Where: K3 = K1*K2 (matrix multiplication)
-           shift3 = (a,b)*K2 + (a,b)
-
-    But our encryption uses shift (a,b) always, so we need to adjust K3
-    to account for the combined shift effect.
-    """
-    print("\nTheoretical Analysis:")
-    print("Finding K3 such that E_K2(E_K1(X)) = E_K3(X)")
-    print("\nDerivation:")
-    print("  E_K1(X) = X*K1 + (a,b)")
-    print("  E_K2(E_K1(X)) = (X*K1 + (a,b))*K2 + (a,b)")
-    print("  = X*K1*K2 + (a,b)*K2 + (a,b)")
-    print("Therefore: K3 = K1*K2 (mod 26)")
-
-    # Calculate K3 as matrix multiplication of K1 and K2
-    K3 = np.dot(K1, K2) % N
-
-    print(f"\nK1 = \n{K1}")
-    print(f"\nK2 = \n{K2}")
-    print(f"\nK3 = K1 * K2 (mod 26) = \n{K3}")
-
-    # Verify K3 is invertible
-    det_K3 = matrix_determinant_mod(K3, N)
-    print(f"\nDeterminant of K3 (mod 26): {det_K3}")
-    print(f"gcd(det_K3, 26): {np.gcd(det_K3, N)}")
-
-    if np.gcd(det_K3, N) == 1:
-        print(" K3 is invertible - it's a valid matrix")
-    else:
-        print(" K3 is not invertible")
-
-    # Calculate the combined shift
-    shift_vector = np.array([a, b])
-    combined_shift = (np.dot(shift_vector, K2) + shift_vector) % N
-    print(f"Combined shift: {combined_shift.tolist()}")
-
-    return K3, combined_shift
+        seen.add(next_text)
+        current = next_text
 
 def verify_equivalent_key(plaintext, K1, K2, K3):
     """
@@ -321,108 +226,86 @@ def verify_equivalent_key(plaintext, K1, K2, K3):
 # ==================== Main Execution and Examples ====================
 
 def main():
-    print("NameCipher - Homework 1")
-    print("Students: Harel & Niko")
-    print("="*50)
+ 
 
-    print(f"\nParameters:")
+    print("NameCipher Double Encryption/Decryption and Analysis")
     print(f"a = {a} (first letter of Harel: H)")
     print(f"b = {b} (first letter of Niko: N)")
     print(f"N = {N} (alphabet size)")
 
     # Define encryption keys
-    # K1 = "help": H=7, E=4, L=11, P=15
-    # Determinant = 7*15 - 4*11 = 105 - 44 = 61 mod 26 = 9, gcd(9,26) = 1 ✓
-    K1 = np.array([[7, 4], [11, 15]])
+    # Keys are hardcoded as per exercise instructions
+    K1 = np.array([ [17, 14], [ 0, 3] ])
+    K2 = np.array([[3, 14], [14, 17] ])
+    
+    print("\n")
+    print("----EXERCISE 1: Encryption")
 
-    # K2 = "next": N=13, E=4, X=23, T=19
-    # Determinant = 13*19 - 4*23 = 247 - 92 = 155 mod 26 = 25, gcd(25,26) = 1 ✓
-    K2 = np.array([[13, 4], [23, 19]])
+    # validate keys
+    if not is_valid_key(K1):
+        print("K1 is invalid, exiting.")
+        return
+    
+    if not is_valid_key(K2):
+        print("K2 is invalid, exiting.")
+        return
 
-    print("\n" + "="*50)
-    print("EXERCISE 1: Encryption")
-    print("="*50)
-
-    # Validate keys
-    print("\nValidating K1 (key = 'HELP'):")
-    is_valid_key(K1)
-
-    print("\nValidating K2 (key = 'NEXT'):")
-    is_valid_key(K2)
-
-    # Create key dictionary
+    # key dictionary
     key = {'K1': K1, 'K2': K2}
 
-    # Example 1: Encrypt "HAREL"
-    print("\nExample 1: Encrypt 'HAREL'")
+
+    print("\nEncrypt 'HAREL'")
     plaintext1 = "HAREL"
     ciphertext1 = NameCipher_encryption(plaintext1, key)
     print(f"Plaintext:  {plaintext1}")
     print(f"Ciphertext: {ciphertext1}")
 
-    # Example 2: Encrypt "NIKO"
-    print("\nExample 2: Encrypt 'NIKO'")
+    print("\nEncrypt 'NIKO'")
     plaintext2 = "NIKO"
     ciphertext2 = NameCipher_encryption(plaintext2, key)
     print(f"Plaintext:  {plaintext2}")
     print(f"Ciphertext: {ciphertext2}")
 
-    print("\n" + "="*50)
+    print("\n")
     print("Decryption")
-    print("="*50)
 
-    # Example 1: Decrypt ciphertext1
-    print("\nExample 1: Decrypt")
+    print("\nDecrypt the cypher 'HAREL'")
+    # expect to get back original plaintext with padding
     decrypted1 = NameCipher_decryption(ciphertext1, key)
-    print(f"Ciphertext: {ciphertext1}")
-    print(f"Decrypted:  {decrypted1}")
-    print(f"Original:   {plaintext1}")
+    print(f"Ciphertext:{ciphertext1}")
+    print(f"Decrypted: {decrypted1}")
+    print(f"Original:{plaintext1}")
 
-    # Example 2: Decrypt ciphertext2
-    print("\nExample 2: Decrypt")
+    # expect to get back original plaintext with padding
+    print("\nDecrypt the cypher 'NIKO'")
     decrypted2 = NameCipher_decryption(ciphertext2, key)
     print(f"Ciphertext: {ciphertext2}")
-    print(f"Decrypted:  {decrypted2}")
-    print(f"Original:   {plaintext2}")
+    print(f"Decrypted: {decrypted2}")
+    print(f"Original: {plaintext2}")
 
-    print("\n" + "="*50)
-    print("EXERCISE 2: Iterative Attack")
-    print("="*50)
+    print("\n----EXERCISE 2: Iterative Attack")
+    print("decrypt by repeated encryption until cycle completes")
+    #Attack on HAREL
+    try:
+        plaintext_found1, iterations1 = iterative_attack(ciphertext1, key)
+        print(f"Plaintext: {plaintext_found1}")
+        print(f"Original:  {plaintext1}")
+        print(f"Match: {'YES' if plaintext_found1 == plaintext1+'A' else 'NO'}")
+    except IterativeAttackFailure as e:
+        print("\nIterative attack failed for HAREL:")
+        print(e)
 
-    print("\nIterative attack: decrypt by repeated encryption")
-    print("Theory: Encryption forms a cycle, so E^k(C) = C, then E^(k-1)(C) = P")
+    #Attack on NIKO
+    try:
+        plaintext_found2, iterations2 = iterative_attack(ciphertext2, key)
+        print(f"Plaintext: {plaintext_found2}")
+        print(f"Original:  {plaintext2}")
+        print(f"Match: {'YES' if plaintext_found2 == plaintext2 else 'NO'}")
+    except IterativeAttackFailure as e:
+        print("\nIterative attack failed for NIKO:")
+        print(e)
 
-    # Run iterative attack on example 1
-    print("\nExample 1: HAREL")
-    plaintext_found1, iterations1 = iterative_attack(ciphertext1, key)
-    print(f"Plaintext: {plaintext_found1}")
-    print(f"Original:  {plaintext1}X")
-    print(f"Match: {'YES' if plaintext_found1 == plaintext1+'X' else 'NO'}")
-
-    # Run iterative attack on example 2
-    print("\nExample 2: NIKO")
-    plaintext_found2, iterations2 = iterative_attack(ciphertext2, key)
-    print(f"Plaintext: {plaintext_found2}")
-    print(f"Original:  {plaintext2}")
-    print(f"Match: {'YES' if plaintext_found2 == plaintext2 else 'NO'}")
-
-    print("\n" + "="*50)
-    print("EXERCISE 3: Theoretical Analysis")
-    print("="*50)
-
-    K3, combined_shift = find_equivalent_key(K1, K2)
-
-    print("\nConclusion:")
-    print("Strictly speaking: NO - while matrix K3 exists,")
-    print("the shift vector changes from (a,b) to (a,b)*K2 + (a,b).")
-    print("So it's not a standard NameCipher with fixed (a,b).")
-    print(f"\nK3 = K1*K2 = {K3[0].tolist()} {K3[1].tolist()}")
-    print(f"New shift: {combined_shift.tolist()} (not [{a},{b}])")
-
-    # Verify with an example
-    verify_equivalent_key("TEST", K1, K2, K3)
-
-    print("\nDone.")
+    print("\nDone :)\nExercise 3 can be seen in the word file")
 
 if __name__ == "__main__":
     main()
