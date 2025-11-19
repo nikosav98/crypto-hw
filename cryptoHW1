@@ -205,16 +205,6 @@ def iterative_attack(ciphertext, key):
         seen.add(next_text)
         current = next_text
 
-def verify_equivalent_key(plaintext, K1, K2, K3):
-    """
-    Verify that encryption with K3 gives same result as double encryption with K1, K2
-    Note: This verification is complex because our shift vectors combine differently
-    """
-    print("\nVerification:")
-    key_double = {'K1': K1, 'K2': K2}
-    ciphertext_double = NameCipher_encryption(plaintext, key_double)
-    print(f"Test plaintext: {plaintext} -> {ciphertext_double}")
-    print("Note: Shift vector differs, so K3 alone doesn't give identical result.")
 
 # ==================== Main Execution and Examples ====================
 
